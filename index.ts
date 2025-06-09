@@ -1,18 +1,26 @@
 import express, { Express, Request, Response } from "express";
 import type { ColorPalette, ColorRequest } from "./types/types";
 import { randomUUID } from "crypto";
+import path from "path";
 
 const app: Express = express();
+const PORT = process.env.PORT || 3000;
 
 const colors: ColorPalette[] = [];
 
-app.use(express.static("./public"));
-app.use(express.urlencoded());
+// Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-app.get("/getAll", (req: Request, res: Response) => {
+// Servir archivos estáticos (HTML, CSS, JS del frontend)
+app.use(express.static(path.join(__dirname, "..", "public")));
+
+// API para obtener todas las paletas
+app.get("/getAll", (_req: Request, res: Response) => {
   res.json(colors);
 });
 
+// Registrar una nueva paleta
 app.post("/register", (req: Request, res: Response) => {
   const { title, color1, color2, color3, color4 }: ColorRequest = req.body;
 
@@ -20,20 +28,10 @@ app.post("/register", (req: Request, res: Response) => {
   const map: Map<string, number> = new Map();
 
   values.forEach((value) => {
-    if (map.has(value)) {
-      const ref = map.get(value);
-      ref && map.set(value, ref + 1);
-    } else {
-      map.set(value, 1);
-    }
+    map.set(value, (map.get(value) || 0) + 1);
   });
 
-  let repeated = false;
-  map.forEach((value, key) => {
-    if (value > 1) {
-      repeated = true;
-    }
-  });
+  const repeated = [...map.values()].some((count) => count > 1);
 
   if (repeated) {
     res.send("Valores repetidos");
@@ -50,6 +48,7 @@ app.post("/register", (req: Request, res: Response) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server iniciado...");
+// Iniciar el servidor
+app.listen(PORT, () => {
+  console.log(`Servidor iniciado en http://localhost:${PORT}`);
 });
